@@ -1,4 +1,4 @@
-#!/Users/yamamotoharumichi/freedom/remote-dev-agent/venv/bin/python3.12
+#!/Users/yamamotoharumichi/freedom/remote-dev-agent/claude-via-slack/venv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys

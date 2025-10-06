@@ -7,24 +7,28 @@ import threading
 import time
 import re
 from subprocess import Popen, PIPE
-from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk import WebClient
 
-logging.basicConfig(level=logging.INFO)
-load_dotenv("config/.env")
+# 設定のimport
+from config import (
+    CLAUDE_BIN,
+    DEFAULT_CWD,
+    SLACK_BOT_TOKEN,
+    SLACK_APP_TOKEN,
+    MAX_LEN,
+    FLUSH_INTERVAL,
+    PROGRESS_INTERVAL
+)
 
-CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "/usr/local/bin/claude")
-DEFAULT_CWD = os.environ.get("DEFAULT_CWD", os.getcwd())
-MAX_LEN = 39000
-FLUSH_INTERVAL = 1.0  # バッファフラッシュ間隔（秒）
-PROGRESS_INTERVAL = 60.0  # 進捗メッセージ送信間隔（秒）
+# スクリーンショット機能のimport
+from screenshot.screenshot import take_screenshot
+
+logging.basicConfig(level=logging.INFO)
 
 ssl_ctx = ssl.create_default_context(cafile=certifi.where())
-bot_token = os.environ["SLACK_BOT_TOKEN"]
-app_token = os.environ["SLACK_APP_TOKEN"]
-client = WebClient(token=bot_token, ssl=ssl_ctx)
+client = WebClient(token=SLACK_BOT_TOKEN, ssl=ssl_ctx)
 app = App(client=client)
 
 # スレッド(ts)単位で管理
@@ -183,7 +187,7 @@ def run_claude_streaming(
                         full_input = "".join(tool_info["input_parts"])
                         try:
                             input_json = json.loads(full_input) if full_input else {}
-                        except:
+                        except (json.JSONDecodeError, ValueError, TypeError):
                             input_json = full_input
 
                         tool_msg = f"\n⏺ {tool_info['name']}({json.dumps(input_json, ensure_ascii=False)})\n  ⎿ Running…\n"
@@ -274,7 +278,7 @@ def run_claude_streaming(
                 active_processes.pop(thread_ts, None)
 
 @app.event("app_mention")
-def on_mention(body, say, logger):
+def on_mention(body, _say, _logger):
     event = body.get("event", {})
     channel = event.get("channel")
     user_id = event.get("user")
@@ -329,6 +333,73 @@ def on_mention(body, say, logger):
             )
         return
 
+    # screenshot コマンド
+    if prompt.lower().startswith("screenshot"):
+        parts = prompt.split(maxsplit=1)
+        if len(parts) < 2:
+            client.chat_postMessage(
+                channel=channel, thread_ts=thread_ts,
+                text="使い方:\n`@Bot screenshot <file_path>`\n`@Bot screenshot <file_path> --line 10`"
+            )
+            return
+
+        # ファイルパスとオプションを解析
+        args = parts[1]
+        file_path = None
+        line_range = None
+
+        # --line オプションの解析（単一行番号）
+        lines_match = re.search(r"--line\s+(\d+)", args)
+        if lines_match:
+            line_range = lines_match.group(1)
+            # --lineより前の部分をファイルパスとして取得
+            file_path = args[:lines_match.start()].strip()
+        else:
+            file_path = args.strip()
+
+        if not file_path:
+            client.chat_postMessage(
+                channel=channel, thread_ts=thread_ts,
+                text="使い方:\n`@Bot screenshot <file_path>`\n`@Bot screenshot <file_path> --line 10`"
+            )
+            return
+
+        client.chat_postMessage(
+            channel=channel, thread_ts=thread_ts,
+            text=f"スクリーンショットを撮影します: {file_path}" + (f" (行 {line_range}から)" if line_range else "")
+        )
+
+        # スクリーンショットを撮影
+        line_number = int(line_range) if line_range else None
+        success, message, screenshot_path = take_screenshot(file_path, line_number)
+
+        if success and screenshot_path:
+            try:
+                # Slackにファイルをアップロード
+                with open(screenshot_path, "rb") as f:
+                    client.files_upload_v2(
+                        channel=channel,
+                        thread_ts=thread_ts,
+                        file=f,
+                        filename=f"screenshot_{os.path.basename(file_path)}.png",
+                        title=f"Screenshot: {file_path}",
+                        initial_comment=f"<@{user_id}> {message}"
+                    )
+                # 一時ファイルを削除
+                os.unlink(screenshot_path)
+            except Exception as e:
+                logging.exception("Failed to upload screenshot")
+                client.chat_postMessage(
+                    channel=channel, thread_ts=thread_ts,
+                    text=f"<@{user_id}> スクリーンショットのアップロードに失敗しました: {str(e)}"
+                )
+        else:
+            client.chat_postMessage(
+                channel=channel, thread_ts=thread_ts,
+                text=f"<@{user_id}> {message}"
+            )
+        return
+
     if not prompt:
         client.chat_postMessage(
             channel=channel, thread_ts=thread_ts,
@@ -337,7 +408,7 @@ def on_mention(body, say, logger):
         return
 
     # 最初の投稿も"同じ thread_ts" に返信（ここが肝）
-    client.chat_postMessage(channel=channel, thread_ts=thread_ts, text="開始します...")
+    client.chat_postMessage(channel=channel, thread_ts=thread_ts, text="開始します！")
 
     # セッションID
     sid_path = os.path.join(DEFAULT_CWD, ".claude_session")
@@ -532,5 +603,5 @@ def on_mention(body, say, logger):
         )
 
 if __name__ == "__main__":
-    handler = SocketModeHandler(app, app_token, web_client=client)
+    handler = SocketModeHandler(app, SLACK_APP_TOKEN, web_client=client)
     handler.start()
