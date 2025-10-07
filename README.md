@@ -2,6 +2,8 @@
 
 SlackからClaude Code CLIを操作するためのボットです。
 
+**注意**: このボットは現在macOSでのみ動作します。
+
 ## 概要
 
 Slackのメンション経由でClaude Code CLIを実行し、結果をスレッド内にストリーミング表示します。
