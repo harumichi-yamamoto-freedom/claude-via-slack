@@ -77,8 +77,8 @@ def extract_final_output(text):
     Returns:
         str: 最終出力部分、またはNone
     """
-    # "開始します！", "完了しました！", "エラーが発生しました", "[STDERR]" などは除外
-    if any(keyword in text for keyword in ["開始します！", "完了しました！", "エラーが発生しました", "[STDERR]", "[DEBUG]"]):
+    # "開始シマス", "完了シマシタ", "エラーが発生しました", "[STDERR]" などは除外
+    if any(keyword in text for keyword in ["開始シマス", "完了シマシタ", "エラーが発生しました", "[STDERR]", "[DEBUG]"]):
         return None
 
     # コードブロック（```）で囲まれた部分は途中経過なので除外

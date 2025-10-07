@@ -66,7 +66,7 @@ def create_mention_handler(client, active_processes, active_lock, stopped_thread
             return
 
         # 実行開始メッセージ
-        client.chat_postMessage(channel=channel, thread_ts=thread_ts, text="開始します！")
+        client.chat_postMessage(channel=channel, thread_ts=thread_ts, text="開始シマス")
 
         # ボットのユーザーIDを取得
         bot_info = client.auth_test()
@@ -121,7 +121,7 @@ def create_mention_handler(client, active_processes, active_lock, stopped_thread
             client.chat_postMessage(
                 channel=channel,
                 thread_ts=thread_ts,
-                text=f"<@{user_id}> 完了しました！"
+                text=f"<@{user_id}> 完了シマシタ"
             )
         else:
             client.chat_postMessage(
