@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual Environment
+venv/
+
+# Environment variables (機密情報)
+config/.env
+
+# macOS
+.DS_Store
