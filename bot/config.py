@@ -28,4 +28,5 @@ SCREENSHOT_OS = os.environ.get("SCREENSHOT_OS", "macos")  # macos, windows, linu
 # その他の設定
 MAX_LEN = 39000  # Slackメッセージの最大文字数
 FLUSH_INTERVAL = 1.0  # バッファフラッシュ間隔（秒）
-PROGRESS_INTERVAL = 10.0  # 進捗メッセージ送信間隔（秒）
+PROGRESS_INTERVAL = 60.0  # 進捗メッセージ送信間隔（秒）
+MAX_HISTORY_MESSAGES = 10  # 会話履歴の最大メッセージ数（最新N往復分）

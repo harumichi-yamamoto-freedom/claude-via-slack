@@ -15,7 +15,6 @@ def run_claude_streaming(
     prompt: str,
     on_stdout: callable,
     on_stderr: callable,
-    session_id: str | None = None,
     thread_ts: str | None = None,
     current_tools: dict | None = None,
     message_stopped: list | None = None,
@@ -29,7 +28,6 @@ def run_claude_streaming(
         prompt: プロンプト文字列
         on_stdout: 標準出力を受け取るコールバック
         on_stderr: 標準エラーを受け取るコールバック
-        session_id: セッションID（スレッド固有）
         thread_ts: SlackスレッドID
         current_tools: ツール実行状態を保持する辞書
         message_stopped: メッセージ停止フラグ
@@ -51,10 +49,8 @@ def run_claude_streaming(
         "--output-format", "stream-json",
         "--include-partial-messages",
         "--permission-mode", "bypassPermissions",
+        prompt,
     ]
-    if session_id:
-        args += ["--session-id", session_id]
-    args += [prompt]
 
     env = {
         **os.environ,

@@ -7,6 +7,7 @@ import logging
 
 from ..utils.session import thread_ts_to_session_id
 from ..utils.buffer import OutputBuffer
+from ..utils.history import get_thread_history, format_history_for_prompt
 from ..claude.runner import run_claude_streaming
 from ..screenshot.screenshot import take_screenshot
 from .commands import handle_status, handle_stop, handle_screenshot
@@ -67,9 +68,19 @@ def create_mention_handler(client, active_processes, active_lock, stopped_thread
         # 実行開始メッセージ
         client.chat_postMessage(channel=channel, thread_ts=thread_ts, text="開始します！")
 
-        # スレッドごとのセッションID生成
-        session_id = thread_ts_to_session_id(thread_ts)
-        logging.info(f"Using session ID: {session_id} for thread: {thread_ts}")
+        # ボットのユーザーIDを取得
+        bot_info = client.auth_test()
+        bot_user_id = bot_info.get("user_id")
+
+        # スレッドの会話履歴を取得
+        history = get_thread_history(client, channel, thread_ts, bot_user_id)
+        logging.info(f"Retrieved {len(history)} messages from thread history")
+
+        # 履歴をプロンプトに追加
+        if history:
+            history_text = format_history_for_prompt(history)
+            prompt = f"{history_text}\n新しい質問:\n{prompt}"
+            logging.info(f"Added history to prompt. Total prompt length: {len(prompt)}")
 
         # バッファ初期化
         start_time = time.time()
@@ -86,7 +97,6 @@ def create_mention_handler(client, active_processes, active_lock, stopped_thread
             prompt,
             buffer.append_stdout,
             buffer.append_stderr,
-            session_id=session_id,
             thread_ts=thread_ts,
             current_tools=current_tools,
             message_stopped=buffer.message_stopped,

@@ -100,6 +100,8 @@ class OutputBuffer:
             # まず残っているバッファをフラッシュ（```付き）
             if self.enable_streaming:
                 self.flush()
+                # 区切り線を投稿
+                self.post_content("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n**最終出力**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             # 最終出力を```なしで投稿
             self.post_content(line, wrap_code=False)
             return
