@@ -48,7 +48,7 @@ SCREENSHOT_OS=macos
 - `SLACK_APP_TOKEN`: Slack App Token（`xapp-...`形式）
 
 **環境依存パス**
-- `CLAUDE_BIN`: Claude CLIの実行パス（デフォルト: `/usr/local/bin/claude`）
+- `CLAUDE_BIN`: Claude CLIの実行パス（デフォルト: `/usr/local/bin/claude`）(which claudeで確認できる)
 - `DEFAULT_CWD`: コマンド実行時のデフォルト作業ディレクトリ（デフォルト: カレントディレクトリ）
 
 **ユーザー設定**
